@@ -3,6 +3,9 @@ import beaver from './assets/beaver.svg'
 import type { ApiResponse } from 'shared'
 import './App.css'
 
+import Grid from './components/grid/WordGrid'
+import WordGrid from './components/grid/WordGrid'
+
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000"
 
 function App() {
@@ -17,33 +20,10 @@ function App() {
       console.log(error)
     }
   }
-
+  const guesses = ['apple', 'crane', 'sleep']
   return (
     <>
-      <div>
-        <a href="https://github.com/stevedylandev/bhvr" target="_blank">
-          <img src={beaver} className="logo" alt="beaver logo" />
-        </a>
-      </div>
-      <h1>bhvr</h1>
-      <h2>Bun + Hono + Vite + React</h2>
-      <p>A typesafe fullstack monorepo</p>
-      <div className="card">
-        <div className='button-container'>
-          <button onClick={sendRequest}>
-            Call API
-          </button>
-          <a className='docs-link' target='_blank' href="https://bhvr.dev">Docs</a>
-        </div>
-        {data && (
-          <pre className='response'>
-            <code>
-            Message: {data.message} <br />
-            Success: {data.success.toString()}
-            </code>
-          </pre>
-        )}
-      </div>
+      <WordGrid guesses = {guesses}></WordGrid>
     </>
   )
 }
