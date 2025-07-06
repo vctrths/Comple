@@ -1,8 +1,8 @@
-type status  = 'correct' | 'present' | 'absent' | undefined;
+type LetterStatus  = 'correct' | 'present' | 'absent' | undefined;
 
 interface CellProps {
   letter: string;
-  status: status; 
+  status: LetterStatus; 
 };
 
 export default function Cell({letter, status}: CellProps){ 

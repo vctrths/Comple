@@ -20,7 +20,15 @@ function App() {
       console.log(error)
     }
   }
-  const guesses = ['apple', 'crane', 'sleep']
+
+  type LetterStatus  = 'correct' | 'present' | 'absent' | undefined;
+
+  const guesses = [
+    {word : 'apple', result : ['present', 'absent', 'correct', 'absent', 'absent'] satisfies LetterStatus[]},
+    {word : 'crane', result : ['absent', 'absent', 'absent', 'absent', 'correct'] satisfies LetterStatus[]},
+    {word : 'sleep', result : ['correct', 'absent', 'correct', 'present', 'correct'] satisfies LetterStatus[]}
+  ]
+
   return (
     <>
       <WordGrid guesses = {guesses}></WordGrid>
