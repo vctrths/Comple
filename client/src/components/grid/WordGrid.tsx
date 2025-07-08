@@ -1,5 +1,4 @@
 import Row from './row'
-import InputRow from './InputRow'
 
 type LetterStatus  = 'correct' | 'present' | 'absent' | undefined;
 
@@ -13,7 +12,6 @@ export default function WordGrid({ guesses }: WordGridProps){
             {guesses.map((guess, i) => (
                 <Row key={i} guess={guess.word} result={guess.result}></Row>
             ))}
-            <InputRow></InputRow>
         </div>
     )
 }

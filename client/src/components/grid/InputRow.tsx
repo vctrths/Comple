@@ -1,34 +1,32 @@
 import { useEffect, useState } from "react";
 import Cell from "./cell";
 
-interface RowProps {
-    guess: string;
+interface InputRowProps {
+    letters: string[];
+    onLetterAdd: (letter: string) => void;
+    onLetterRemove: () => void;
 }
 
-export default function InputRow(){
-    const [letters, setLetters] = useState<string[]>([])
-
+export default function InputRow({ letters, onLetterAdd, onLetterRemove}: InputRowProps){
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             const key = e.key
 
             switch (key){
                 case 'Backspace':
-                    setLetters(prev => prev.slice(0, -1))
+                    onLetterRemove();
                     break;
                 default:
                     if (key.length === 1 && /[a-zA-Z]/.test(key)){
-                        setLetters(prev => prev.length < 5 ? [...prev, key] : prev)
+                        onLetterAdd(key);
                     }
                     break;
             }
         }
         document.addEventListener('keydown', handleKeyDown);
 
-        return () => {
-            document.removeEventListener('keydown', handleKeyDown);
-        };
-    }, []);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [letters, onLetterAdd, onLetterRemove]);
 
     const paddedLetters = [...letters, ...Array(5 - letters.length).fill('')];
 
