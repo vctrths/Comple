@@ -26,7 +26,8 @@ function App() {
   const guesses = [
     {word : 'apple', result : ['present', 'absent', 'correct', 'absent', 'absent'] satisfies LetterStatus[]},
     {word : 'crane', result : ['absent', 'absent', 'absent', 'absent', 'correct'] satisfies LetterStatus[]},
-    {word : 'sleep', result : ['correct', 'absent', 'correct', 'present', 'correct'] satisfies LetterStatus[]}
+    {word : 'sleep', result : ['correct', 'absent', 'correct', 'present', 'correct'] satisfies LetterStatus[]},
+    {word : 'undef', result : [] satisfies LetterStatus[]}
   ]
 
   return (
