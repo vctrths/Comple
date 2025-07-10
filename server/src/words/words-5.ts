@@ -1,5 +1,6 @@
 // words/words-5.ts
-export const VALID_WORDS_5 = [
+
+export const VALID_WORDS: string[] = [
   // Test words for development
   'house', 'world', 'hello', 'apple', 'crane', 'sleet', 'about', 'above',
   'abuse', 'actor', 'acute', 'admit', 'adopt', 'adult', 'after', 'again',
@@ -69,7 +70,7 @@ export const VALID_WORDS_5 = [
   'wrote', 'young', 'youth'
 ] as const;
 
-export const TARGET_WORDS_5 = [
+export const TARGET_WORDS: string[] = [
   // Subset of easier/common words for targets
   'house', 'world', 'hello', 'apple', 'crane', 'about', 'water', 'light',
   'right', 'world', 'great', 'small', 'sound', 'place', 'where', 'after',
@@ -82,4 +83,4 @@ export const TARGET_WORDS_5 = [
   'chair', 'bread', 'sweet', 'sugar', 'storm', 'movie', 'paper', 'super'
 ] as const;
 
-export const VALID_WORDS_5_SET = new Set(VALID_WORDS_5);
+export const VALID_WORDS_SET = new Set(VALID_WORDS);

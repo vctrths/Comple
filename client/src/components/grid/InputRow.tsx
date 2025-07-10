@@ -5,9 +5,10 @@ interface InputRowProps {
     letters: string[];
     onLetterAdd: (letter: string) => void;
     onLetterRemove: () => void;
+    onSubmit: () => void;
 }
 
-export default function InputRow({ letters, onLetterAdd, onLetterRemove}: InputRowProps){
+export default function InputRow({ letters, onLetterAdd, onLetterRemove, onSubmit}: InputRowProps){
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             const key = e.key
@@ -15,6 +16,9 @@ export default function InputRow({ letters, onLetterAdd, onLetterRemove}: InputR
             switch (key){
                 case 'Backspace':
                     onLetterRemove();
+                    break;
+                case 'Enter':
+                    onSubmit();
                     break;
                 default:
                     if (key.length === 1 && /[a-zA-Z]/.test(key)){
