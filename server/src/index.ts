@@ -1,8 +1,11 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
+import { createBunWebSocket } from 'hono/bun';
+import type { ServerWebSocket } from 'bun';
 
 import { VALID_WORDS_SET, TARGET_WORDS } from './words/words-5'
 import type{ GuessResponse, ApiResponse } from './types';
+import type { WebSocket } from 'bun';
 
 
 const validWords = VALID_WORDS_SET;
@@ -13,8 +16,19 @@ let targetWord: string;
 
 
 const app = new Hono()
+const { upgradeWebSocket, websocket} = createBunWebSocket<ServerWebSocket>();
+const server = Bun.serve({
+  fetch: app.fetch,
+  port: 3000,
+  websocket,
+});
 
-app.use(cors())
+app.use(cors());
+
+app.get('/', (c) => {
+  console.log('HTTP request to root');
+  return c.text('Server running with WebSocket support'); // ✅ Return response
+});
 
 app.post('/api/guess', async (c) => {
   const body = await c.req.json();
@@ -38,7 +52,7 @@ app.post('/api/guess', async (c) => {
   }
 });
 
-app.post('api/new-game', async(c) => {
+app.post('/api/new-game', async(c) => {
   targetWord = TARGET_WORDS[Math.floor(Math.random()*TARGET_WORDS.length)] || 'house';
   const gameId: string = Math.random().toString(36).substring(2, 15);
   return c.json({ gameId, message: 'New game started'}, { status: 200});
@@ -78,4 +92,19 @@ function evaluateGuess(guess: string, target: string): string[] {
   return result;
 };
 
-export default app
+app.get(
+  '/ws',
+  upgradeWebSocket((c) => {
+    return {
+      onMessage(event, ws) {
+        console.log('Message from client: ${event.date');
+        ws.send('Hello from server!');
+      },
+      onClose: () => {
+        console.log('Connection closed');
+      }
+    }
+  })
+);
+
+export default app;

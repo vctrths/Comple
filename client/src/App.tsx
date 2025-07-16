@@ -5,6 +5,7 @@ import WordGrid from './components/grid/WordGrid'
 import InputRow from './components/grid/InputRow'
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000"
+const WS_URL = import.meta.env.VITE_WS_URL || SERVER_URL.replace('http://', 'ws://').replace('https://', 'wss://') + '/ws';
 
 function App() {
   type LetterStatus  = 'correct' | 'present' | 'absent' | undefined;
@@ -20,6 +21,30 @@ function App() {
 
   useEffect(() => {
     startNewGame();
+
+    let ws: WebSocket | null = null;
+
+    const setupWebSocket = () => {
+      const ws = new WebSocket(WS_URL);
+
+      ws.onopen = () => {
+        console.log('Client: Connected to WebSocket');
+      }
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error)
+      };
+      ws.onclose = () => {
+        console.log('WebSocket closed');
+      };
+    };
+
+    setupWebSocket();
+
+    return () => {
+      if (ws) {
+        ws.close();
+      }
+    }
   }, []);
 
   const startNewGame = async () => {
