@@ -1,13 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import './App.css'
 
 import WordGrid from './components/grid/WordGrid'
 import InputRow from './components/grid/InputRow'
-
-// {word : 'apple' as string, result : ['present', 'absent', 'correct', 'absent', 'absent'] satisfies LetterStatus[]},
-// {word : 'crane' as string, result : ['absent', 'absent', 'absent', 'absent', 'correct'] satisfies LetterStatus[]},
-// {word : 'sleep' as string, result : ['correct', 'absent', 'correct', 'present', 'correct'] satisfies LetterStatus[]},
-// {word : 'undef' as string, result : [] satisfies LetterStatus[]}
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000"
 
@@ -21,6 +16,28 @@ function App() {
   
   const [currentGuess, setCurrentGuess] = useState<string[]>([]);
   const [guesses, setGuesses] = useState<WordGuess[]>([]);
+  const [gameId, setGameId] = useState<string>('');
+
+  useEffect(() => {
+    startNewGame();
+  }, []);
+
+  const startNewGame = async () => {
+    try {
+      const response = await fetch(`${SERVER_URL}/api/new-game`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      const data = await response.json()
+      if (response.ok){
+        setGameId(data.gameId)
+      }
+    } catch (error) {
+      console.error('Failed to start new game: ', error);
+    }
+  }
 
   const letterAdd = (letter: string) => {
     setCurrentGuess(prev => prev.length < 5 ? [...prev, letter] : prev);
@@ -29,6 +46,7 @@ function App() {
     setCurrentGuess(prev => prev.slice(0, -1));
   }
   const submitGuess = async () => {
+    if(guesses.length > 6) return;
     const guess = currentGuess.join('').toLowerCase();
     if(guess.length !== 5) return;
     try {

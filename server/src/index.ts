@@ -1,17 +1,15 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import type { ApiResponse, GuessResponse } from 'shared/dist'
 
 import { VALID_WORDS_SET, TARGET_WORDS } from './words/words-5'
+import type{ GuessResponse, ApiResponse } from './types';
 
-type GuessResponse = {
-    word: string;
-    result: string[];
-};
 
 const validWords = VALID_WORDS_SET;
-const targetWord = 'house';
-
+// let targetWord: string = TARGET_WORDS[Math.floor(Math.random()*TARGET_WORDS.length)] || 'house';
+let targetWord: string;
+// const targetWord = 'house';
+// console.log(targetWord);
 
 
 const app = new Hono()
@@ -39,6 +37,13 @@ app.post('/api/guess', async (c) => {
     return c.json(api_response, {status: 400});
   }
 });
+
+app.post('api/new-game', async(c) => {
+  targetWord = TARGET_WORDS[Math.floor(Math.random()*TARGET_WORDS.length)] || 'house';
+  const gameId: string = Math.random().toString(36).substring(2, 15);
+  return c.json({ gameId, message: 'New game started'}, { status: 200});
+});
+
 
 function evaluateGuess(guess: string, target: string): string[] {
   const result: string[] = new Array(5);
@@ -71,6 +76,6 @@ function evaluateGuess(guess: string, target: string): string[] {
   });
   
   return result;
-}
+};
 
 export default app
