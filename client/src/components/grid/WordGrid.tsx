@@ -1,4 +1,4 @@
-import Row from './row'
+import Row from './Row'
 
 type LetterStatus  = 'correct' | 'present' | 'absent' | undefined;
 

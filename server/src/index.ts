@@ -9,19 +9,15 @@ import type { WebSocket } from 'bun';
 
 
 const validWords = VALID_WORDS_SET;
-// let targetWord: string = TARGET_WORDS[Math.floor(Math.random()*TARGET_WORDS.length)] || 'house';
 let targetWord: string;
-// const targetWord = 'house';
-// console.log(targetWord);
-
 
 const app = new Hono()
 const { upgradeWebSocket, websocket} = createBunWebSocket<ServerWebSocket>();
-const server = Bun.serve({
-  fetch: app.fetch,
-  port: 3000,
-  websocket,
-});
+// const server = Bun.serve({
+//   fetch: app.fetch,
+//   port: 3000,
+//   websocket,
+// });
 
 app.use(cors());
 
@@ -96,8 +92,11 @@ app.get(
   '/ws',
   upgradeWebSocket((c) => {
     return {
+      onOpen() {
+        console.log('WebSocket connection opened');
+      },
       onMessage(event, ws) {
-        console.log('Message from client: ${event.date');
+        console.log(`Message from client: ${event.data}`);
         ws.send('Hello from server!');
       },
       onClose: () => {
@@ -107,4 +106,9 @@ app.get(
   })
 );
 
-export default app;
+// export default app;
+export default {
+  port: 3000,
+  fetch: app.fetch,
+  websocket
+}

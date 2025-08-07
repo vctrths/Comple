@@ -24,21 +24,23 @@ function App() {
 
     let ws: WebSocket | null = null;
 
-    const setupWebSocket = () => {
-      const ws = new WebSocket(WS_URL);
-
-      ws.onopen = () => {
-        console.log('Client: Connected to WebSocket');
-      }
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error)
-      };
-      ws.onclose = () => {
-        console.log('WebSocket closed');
-      };
+    const connectWithDelay = () => {
+      setTimeout(() => {
+        ws = new WebSocket(WS_URL);
+  
+        ws.onopen = () => {
+          console.log('Client: Connected to WebSocket');
+        }
+        ws.onerror = (error) => {
+          console.error('WebSocket error:', error)
+        };
+        ws.onclose = () => {
+          console.log('WebSocket closed');
+        };
+      }, 100)
     };
 
-    setupWebSocket();
+    connectWithDelay();
 
     return () => {
       if (ws) {
