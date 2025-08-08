@@ -10,6 +10,7 @@ import type { WebSocket } from 'bun';
 
 const validWords = VALID_WORDS_SET;
 let targetWord: string;
+const gameRooms = new Map<string, Set<WebSocket>>();
 
 const app = new Hono()
 const { upgradeWebSocket, websocket} = createBunWebSocket<ServerWebSocket>();
@@ -88,19 +89,73 @@ function evaluateGuess(guess: string, target: string): string[] {
   return result;
 };
 
-app.get(
-  '/ws',
-  upgradeWebSocket((c) => {
+app.get('/ws', upgradeWebSocket((c) => {
     return {
       onOpen() {
         console.log('WebSocket connection opened');
       },
       onMessage(event, ws) {
+        const data = JSON.parse(event.data as string);
         console.log(`Message from client: ${event.data}`);
-        ws.send('Hello from server!');
+        ws.send(JSON.stringify({ message: 'Hello from server!' }));
+
+        switch (data.type) {
+          case 'join-game':
+            const { gameId, playerId, username } = data;
+            console.log(`${username} joining game ${gameId}`);
+
+            if(!gameRooms.has(gameId)) {
+              gameRooms.set(gameId, new Set<WebSocket>());
+            }
+            gameRooms.get(gameId)?.add(ws);
+
+            const gameRoom = gameRooms.get(gameId);
+            gameRoom?.forEach(playerWs => {
+              playerWs.send(JSON.stringify({
+                type: 'player-joined',
+                playerId,
+                username,
+                playerCount: gameRoom.size
+              }));
+            });
+          break;
+
+          case 'submit-guess':
+            const { guess, playerId: guessingPlayer, gameId: currentGameId } = data;
+            console.log(`${guessingPlayer} guessed: ${guess}`);
+
+            if (validWords.has(guess)) {
+              const result = evaluateGuess(guess, targetWord);
+
+              ws.send(JSON.stringify({
+                type: 'guess-result',
+                playerId: guessingPlayer,
+                word: guess,
+                result: result,
+                isCorrect: guess === targetWord
+              }));
+            } else {
+              ws.send(JSON.stringify({
+                type: 'guess-error',
+                message: 'Not a valid word'
+              }));
+            }
+            break;
+        }
       },
-      onClose: () => {
+      onClose: (event, ws) => {
         console.log('Connection closed');
+
+        gameRooms.forEach((room, gameId) => {
+          if (room.has(ws)){
+            room.delete(ws);
+            console.log(`Player left game ${gameId}`);
+            if(room.size === 0) {
+              gameRooms.delete(gameId);
+              console.log(`Empty game room ${gameId} deleted`);
+            }
+          }
+        })
       }
     }
   })
