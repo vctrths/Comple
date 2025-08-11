@@ -3,6 +3,8 @@ import './App.css'
 
 import WordGrid from './components/grid/WordGrid'
 import InputRow from './components/grid/InputRow'
+import GameLobby from './components/GameLobby'
+import GameStatus from './components/GameStatus'
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000"
 const WS_URL = import.meta.env.VITE_WS_URL || SERVER_URL.replace('http://', 'ws://').replace('https://', 'wss://') + '/ws';
@@ -20,7 +22,10 @@ function App() {
   const [gameId, setGameId] = useState<string>('');
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [playerId] = useState(() => `player_${Math.random().toString(36).substring(2, 9)}`);
-
+  const [isConnected, setIsConnected] = useState(false); 
+  const [hasJoinedRoom, setHasJoinedRoom] = useState(false);
+  const [playerCount, setPlayerCount] = useState<number>(0); 
+  
   useEffect(() => {
     startNewGame();
 
@@ -33,15 +38,7 @@ function App() {
         websocket.onopen = () => {
           console.log('Client: Connected to WebSocket');
           setWs(websocket);
-
-          if (gameId) {
-            websocket.send(JSON.stringify({
-              type: 'join-game',
-              gameId,
-              playerId,
-              username: `Player${playerId.substring(0, 4)}`
-            }));
-          }
+          setIsConnected(true);
         };
         websocket.onmessage = (event) => {
           try {
@@ -54,6 +51,11 @@ function App() {
                 break;
               case 'player-joined':
                 console.log(`Player ${data.username} joined the game`);
+                // Check if this is the current player joining
+                if (data.playerId === playerId) {
+                  setHasJoinedRoom(true);
+                }
+                setPlayerCount(data.playerCount || 1);
                 break;
               case 'guess-result':
                 const newGuess: WordGuess = {
@@ -73,6 +75,8 @@ function App() {
         };
         websocket.onclose = () => {
           console.log('WebSocket closed');
+          setIsConnected(false);
+          setHasJoinedRoom(false);
         };
       }, 100)
     };
@@ -103,6 +107,21 @@ function App() {
     }
   }
 
+  const handleJoinRoom = (roomId: string) => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      setGameId(roomId);
+      ws.send(JSON.stringify({
+        type: 'join-game',
+        gameId: roomId,
+        playerId,
+        username: `Player${playerId.substring(0, 4)}`
+      }));
+      console.log(`Joining room: ${roomId}`);
+    } else {
+      console.error('WebSocket not connected');
+    }
+  };
+
   const letterAdd = (letter: string) => {
     setCurrentGuess(prev => prev.length < 5 ? [...prev, letter] : prev);
   }
@@ -114,29 +133,6 @@ function App() {
     const guess = currentGuess.join('').toLowerCase();
     if(guess.length !== 5) return;
     try {
-      // const response = await fetch(`${SERVER_URL}/api/guess`, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify({
-      //     guess: guess // Send the array directly
-      //   })
-
-      // });
-      // const data = await response.json();
-
-      // if (response.ok) {
-      //   const newGuess = {
-      //     word: data.word as string,
-      //     result: data.result satisfies LetterStatus[]
-      //   }
-
-      //   setGuesses(prev => [...prev, newGuess]);
-      //   setCurrentGuess([]);
-      // } else {
-      //   console.log(data.message);
-      // }
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({
           type: 'submit-guess',
@@ -154,8 +150,21 @@ function App() {
 
   return (
     <>
-      <WordGrid guesses = {guesses}></WordGrid>
-      <InputRow letters={currentGuess} onLetterAdd={letterAdd} onLetterRemove={letterRemove} onSubmit={submitGuess}></InputRow>
+      {!hasJoinedRoom ? (
+        <GameLobby
+          isConnected={isConnected}
+          hasJoinedRoom={hasJoinedRoom}
+          gameId={gameId}
+          playerId={playerId}
+          onJoinRoom={handleJoinRoom}
+        />
+      ) : (
+        <>
+          <GameStatus hasJoinedRoom={hasJoinedRoom} gameId={gameId} playerId={playerId} />
+          <WordGrid guesses={guesses} />
+          <InputRow letters={currentGuess} onLetterAdd={letterAdd} onLetterRemove={letterRemove} onSubmit={submitGuess} />
+        </>
+      )}
     </>
   )
 }
