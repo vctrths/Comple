@@ -48,7 +48,7 @@ function App() {
                 console.log('Succesfull connected');
                 break;
               case 'player-joined':
-                console.log(`Player ${data.username} joined the game`);
+                console.log(`Player ${data.playerId} joined the game`);
                 // Check if this is the current player joining
                 if (data.playerId === playerId) {
                   setHasJoinedRoom(true);
@@ -112,7 +112,6 @@ function App() {
         type: 'join-game',
         gameId: roomId,
         playerId,
-        username: `Player${playerId.substring(0, 4)}`
       }));
       console.log(`Joining room: ${roomId}`);
     } else {

@@ -71,8 +71,8 @@ app.get('/ws', upgradeWebSocket((c) => {
         console.log(`Message from client: ${event.data}`);
         switch (data.type) {
           case 'join-game':
-            const { gameId, playerId, username } = data;
-            console.log(`${username} joining game ${gameId}`);
+            const { gameId, playerId } = data;
+            console.log(`${playerId} joining game ${gameId}`);
 
           playerSockets.set(playerId, ws);
 
@@ -87,7 +87,6 @@ app.get('/ws', upgradeWebSocket((c) => {
               playerWs.send(JSON.stringify({
                 type: 'player-joined',
                 playerId,
-                username,
                 playerCount: gameRoom.size
               }));
             });
