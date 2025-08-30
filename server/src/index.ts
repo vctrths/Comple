@@ -10,6 +10,7 @@ import type { WebSocket } from 'bun';
 
 const validWords = VALID_WORDS_SET;
 let targetWord: string;
+const playerSockets = new Map<string, WebSocket>();
 const gameRooms = new Map<string, Set<WebSocket>>();
 const roomTargets = new Map<string, string>();
 
@@ -58,18 +59,22 @@ function evaluateGuess(guess: string, target: string): string[] {
 
 app.get('/ws', upgradeWebSocket((c) => {
     return {
-      onOpen() {
+      onOpen(event, ws) {
         console.log('WebSocket connection opened');
+        ws.send(JSON.stringify({
+          type: 'connected',
+          message: 'Connected to game server'
+        }));
       },
       onMessage(event, ws) {
         const data = JSON.parse(event.data as string);
         console.log(`Message from client: ${event.data}`);
-        ws.send(JSON.stringify({ message: 'Hello from server!' }));
-
         switch (data.type) {
           case 'join-game':
             const { gameId, playerId, username } = data;
             console.log(`${username} joining game ${gameId}`);
+
+          playerSockets.set(playerId, ws);
 
             if(!gameRooms.has(gameId)) {
               gameRooms.set(gameId, new Set<WebSocket>());
@@ -86,7 +91,7 @@ app.get('/ws', upgradeWebSocket((c) => {
                 playerCount: gameRoom.size
               }));
             });
-          break;
+            break;
 
           case 'submit-guess':
             const { guess, playerId: guessingPlayer, gameId: currentGameId } = data;
@@ -108,6 +113,50 @@ app.get('/ws', upgradeWebSocket((c) => {
                 type: 'guess-error',
                 message: 'Not a valid word'
               }));
+            }
+            break;
+
+          case 'leave-room':
+            console.log('Server received leave-room message:', data);
+            const {gameId: leaveGameId, playerId: leavingPlayerId} = data;
+            const leaveRoom = gameRooms.get(leaveGameId);
+
+            const playerWs = playerSockets.get(leavingPlayerId);
+
+            console.log('🔍 Debug info:', {
+              leaveGameId,
+              leavingPlayerId,
+              roomExists: !!leaveRoom,
+              roomSize: leaveRoom?.size,
+              playerSocketFound: !!playerWs,
+              wsInRoom: leaveRoom?.has(playerWs)
+            });
+            
+            // Show all existing rooms for debugging
+            console.log('🔍 All rooms:', Array.from(gameRooms.keys()));
+
+            if(leaveRoom && playerWs && leaveRoom.has(playerWs)) {
+              console.log(`Removing player ${leavingPlayerId} from room ${leaveGameId}`);
+              leaveRoom.delete(playerWs);
+              playerSockets.delete(leavingPlayerId);
+
+              leaveRoom.forEach(remainingPlayerWs => {
+                remainingPlayerWs.send(JSON.stringify({
+                  type: 'player-left',
+                  playerId: leavingPlayerId,
+                  playerCount: leaveRoom.size
+                }));
+              });
+              if(leaveRoom.size === 0){
+                gameRooms.delete(leaveGameId);
+                roomTargets.delete(leaveGameId);
+              }
+            } else {
+              console.log('Failed checks:', {
+                roomExists: !!leaveRoom,
+                playerSocketFound: !!playerWs,
+                wsInRoom: leaveRoom?.has(playerWs)
+              });
             }
             break;
         }

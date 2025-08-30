@@ -63,6 +63,9 @@ function App() {
                 setGuesses(prev => [...prev, newGuess]);
                 setCurrentGuess([]);
                 break;
+              case 'player-left':
+                setPlayerCount(data.playerCount || 0);
+                break;
             }
           } catch (error) {
             console.error('Error parsing WebSocket message:', error);
@@ -87,6 +90,20 @@ function App() {
       }
     }
   }, []);
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (ws && ws.readyState === WebSocket.OPEN && hasJoinedRoom) {
+        ws.send(JSON.stringify({
+          type: 'leave-room',
+          gameId,
+          playerId,
+        }));
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [ws, hasJoinedRoom, gameId, playerId]);
 
   const handleJoinRoom = (roomId: string) => {
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -129,6 +146,26 @@ function App() {
     }
   }
 
+  const leaveRoom = () => {
+    console.log('Attempting to leave room');
+    if (ws && ws.readyState === WebSocket.OPEN && hasJoinedRoom) {
+      console.log('sending leave-room message');
+      ws.send(JSON.stringify({
+        type: 'leave-room',
+        gameId,
+        playerId,
+      }));
+      console.log('resetting local state')
+      setHasJoinedRoom(false);
+      setPlayerCount(0);
+      setGuesses([]);
+      setCurrentGuess([]);
+      setGameId('');
+    } else {
+      console.error('Cannot leave room')
+    }
+  };
+
   return (
     <>
       {!hasJoinedRoom ? (
@@ -144,6 +181,7 @@ function App() {
           <GameStatus hasJoinedRoom={hasJoinedRoom} gameId={gameId} playerId={playerId} />
           <WordGrid guesses={guesses} />
           <InputRow letters={currentGuess} onLetterAdd={letterAdd} onLetterRemove={letterRemove} onSubmit={submitGuess} />
+          <button onClick={leaveRoom}>Leave Room</button>
         </>
       )}
     </>
