@@ -11,14 +11,10 @@ import type { WebSocket } from 'bun';
 const validWords = VALID_WORDS_SET;
 let targetWord: string;
 const gameRooms = new Map<string, Set<WebSocket>>();
+const roomTargets = new Map<string, string>();
 
 const app = new Hono()
 const { upgradeWebSocket, websocket} = createBunWebSocket<ServerWebSocket>();
-// const server = Bun.serve({
-//   fetch: app.fetch,
-//   port: 3000,
-//   websocket,
-// });
 
 app.use(cors());
 
@@ -26,35 +22,6 @@ app.get('/', (c) => {
   console.log('HTTP request to root');
   return c.text('Server running with WebSocket support'); // ✅ Return response
 });
-
-app.post('/api/guess', async (c) => {
-  const body = await c.req.json();
-  const guess: string = body.guess;
-
-  if(validWords.has(guess)){
-    const result = evaluateGuess(guess, targetWord);
-
-    const api_response : GuessResponse = {
-      word : guess,
-      result : result
-    };
-    return c.json(api_response, {status: 200});
-  }
-  else {
-    const api_response : ApiResponse = {
-      message: 'Not a valid word',
-      success: false
-    }
-    return c.json(api_response, {status: 400});
-  }
-});
-
-app.post('/api/new-game', async(c) => {
-  targetWord = TARGET_WORDS[Math.floor(Math.random()*TARGET_WORDS.length)] || 'house';
-  const gameId: string = Math.random().toString(36).substring(2, 15);
-  return c.json({ gameId, message: 'New game started'}, { status: 200});
-});
-
 
 function evaluateGuess(guess: string, target: string): string[] {
   const result: string[] = new Array(5);
@@ -106,6 +73,7 @@ app.get('/ws', upgradeWebSocket((c) => {
 
             if(!gameRooms.has(gameId)) {
               gameRooms.set(gameId, new Set<WebSocket>());
+              roomTargets.set(gameId, TARGET_WORDS[Math.floor(Math.random() * TARGET_WORDS.length)] || 'house');
             }
             gameRooms.get(gameId)?.add(ws);
 
@@ -125,14 +93,15 @@ app.get('/ws', upgradeWebSocket((c) => {
             console.log(`${guessingPlayer} guessed: ${guess}`);
 
             if (validWords.has(guess)) {
-              const result = evaluateGuess(guess, targetWord);
+              const target = roomTargets.get(currentGameId);
+              const result = evaluateGuess(guess, target);
 
               ws.send(JSON.stringify({
                 type: 'guess-result',
                 playerId: guessingPlayer,
                 word: guess,
                 result: result,
-                isCorrect: guess === targetWord
+                isCorrect: guess === target
               }));
             } else {
               ws.send(JSON.stringify({
@@ -152,6 +121,7 @@ app.get('/ws', upgradeWebSocket((c) => {
             console.log(`Player left game ${gameId}`);
             if(room.size === 0) {
               gameRooms.delete(gameId);
+              roomTargets.delete(gameId);
               console.log(`Empty game room ${gameId} deleted`);
             }
           }

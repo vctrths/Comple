@@ -32,13 +32,9 @@ function GameLobby({
       <h1>Competitive Wordle</h1>
       {isConnected ? (
         <div>
-          {gameId && (
-            <button onClick={handleJoinCurrentRoom} style={{width: '100%', backgroundColor: '#75A865', color: 'white', padding: '.8rem'}}>join random room </button>
-          )}
-
           {/* Join Custom Room */}
           <div>
-            <h4 style={{textAlign: 'start'}}>Custom room</h4>
+            <h4 style={{textAlign: 'start'}}>Join a room!</h4>
             <div style={{display: 'flex', justifyContent: 'space-between'}}>
               <input type="text" placeholder="Enter Room ID" value={customRoomId} onChange={(e) => setCustomRoomId(e.target.value)} style={{width: '70%', padding: '.8rem', border: '1px black',borderRadius: '8px'}}/>
               <button onClick={handleJoinCustomRoom} disabled={!customRoomId.trim()}>Join</button>

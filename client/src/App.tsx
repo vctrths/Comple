@@ -27,8 +27,6 @@ function App() {
   const [playerCount, setPlayerCount] = useState<number>(0); 
   
   useEffect(() => {
-    startNewGame();
-
     let websocket: WebSocket | null = null;
 
     const connectWithDelay = () => {
@@ -89,23 +87,6 @@ function App() {
       }
     }
   }, []);
-
-  const startNewGame = async () => {
-    try {
-      const response = await fetch(`${SERVER_URL}/api/new-game`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-      const data = await response.json()
-      if (response.ok){
-        setGameId(data.gameId)
-      }
-    } catch (error) {
-      console.error('Failed to start new game: ', error);
-    }
-  }
 
   const handleJoinRoom = (roomId: string) => {
     if (ws && ws.readyState === WebSocket.OPEN) {
