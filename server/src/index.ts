@@ -13,6 +13,7 @@ let targetWord: string;
 const playerSockets = new Map<string, WebSocket>();
 const gameRooms = new Map<string, Set<WebSocket>>();
 const roomTargets = new Map<string, string>();
+const roomPlayers = new Map<string, Map<string, { playerId: string; guesses: { result: string[] }[] }>>();
 
 const app = new Hono()
 const { upgradeWebSocket, websocket} = createBunWebSocket<ServerWebSocket>();
@@ -21,7 +22,7 @@ app.use(cors());
 
 app.get('/', (c) => {
   console.log('HTTP request to root');
-  return c.text('Server running with WebSocket support'); // ✅ Return response
+  return c.text('Server running with WebSocket support');
 });
 
 function evaluateGuess(guess: string, target: string): string[] {
@@ -82,12 +83,19 @@ app.get('/ws', upgradeWebSocket((c) => {
             }
             gameRooms.get(gameId)?.add(ws);
 
-            const gameRoom = gameRooms.get(gameId);
-            gameRoom?.forEach(playerWs => {
+            if (!roomPlayers.has(gameId)) {
+              roomPlayers.set(gameId, new Map());
+            }
+
+            if (!roomPlayers.get(gameId)?.has(playerId)) {
+              roomPlayers.get(gameId)?.set(playerId, { playerId, guesses: [] });
+            }
+
+            const joinPlayerList = Array.from(roomPlayers.get(gameId)?.values() || []);
+            gameRooms.get(gameId)?.forEach(playerWs => {
               playerWs.send(JSON.stringify({
-                type: 'player-joined',
-                playerId,
-                playerCount: gameRoom.size
+                type: 'player-list',
+                playerList: joinPlayerList
               }));
             });
             break;
@@ -100,6 +108,11 @@ app.get('/ws', upgradeWebSocket((c) => {
               const target = roomTargets.get(currentGameId);
               const result = evaluateGuess(guess, target);
 
+              const playerData = roomPlayers.get(currentGameId)?.get(guessingPlayer);
+              if (playerData) {
+                playerData.guesses.push({ result });
+              }
+
               ws.send(JSON.stringify({
                 type: 'guess-result',
                 playerId: guessingPlayer,
@@ -107,43 +120,50 @@ app.get('/ws', upgradeWebSocket((c) => {
                 result: result,
                 isCorrect: guess === target
               }));
+
+              const gameRoom = gameRooms.get(currentGameId);
+              gameRoom?.forEach(playerWs => {
+                if(playerWs !== ws) {
+                  playerWs.send(JSON.stringify({
+                    type: 'other-player-guess',
+                    playerId: guessingPlayer,
+                    result: result
+                  }));
+                }
+              });
             } else {
               ws.send(JSON.stringify({
                 type: 'guess-error',
                 message: 'Not a valid word'
               }));
             }
+
+            const guessPlayerList = Array.from(roomPlayers.get(currentGameId)?.values() || []);
+            gameRooms.get(currentGameId)?.forEach(playerWs => {
+              playerWs.send(JSON.stringify({
+                type: 'player-list',
+                playerList: guessPlayerList
+              }));
+            });
             break;
 
           case 'leave-room':
             console.log('Server received leave-room message:', data);
             const {gameId: leaveGameId, playerId: leavingPlayerId} = data;
             const leaveRoom = gameRooms.get(leaveGameId);
-
             const playerWs = playerSockets.get(leavingPlayerId);
-
-            console.log('🔍 Debug info:', {
-              leaveGameId,
-              leavingPlayerId,
-              roomExists: !!leaveRoom,
-              roomSize: leaveRoom?.size,
-              playerSocketFound: !!playerWs,
-              wsInRoom: leaveRoom?.has(playerWs)
-            });
-            
-            // Show all existing rooms for debugging
-            console.log('🔍 All rooms:', Array.from(gameRooms.keys()));
 
             if(leaveRoom && playerWs && leaveRoom.has(playerWs)) {
               console.log(`Removing player ${leavingPlayerId} from room ${leaveGameId}`);
               leaveRoom.delete(playerWs);
               playerSockets.delete(leavingPlayerId);
+              roomPlayers.get(leaveGameId)?.delete(leavingPlayerId);
 
+              const playerList = Array.from(roomPlayers.get(leaveGameId)?.values() || []);
               leaveRoom.forEach(remainingPlayerWs => {
                 remainingPlayerWs.send(JSON.stringify({
-                  type: 'player-left',
-                  playerId: leavingPlayerId,
-                  playerCount: leaveRoom.size
+                  type: 'player-list',
+                  playerList
                 }));
               });
               if(leaveRoom.size === 0){
@@ -167,6 +187,20 @@ app.get('/ws', upgradeWebSocket((c) => {
           if (room.has(ws)){
             room.delete(ws);
             console.log(`Player left game ${gameId}`);
+            for (const [playerId, playerWs] of playerSockets.entries()) {
+              if (playerWs === ws) {
+                roomPlayers.get(gameId)?.delete(playerId);
+                playerSockets.delete(playerId);
+                break;
+              }
+            }
+            const playerList = Array.from(roomPlayers.get(gameId)?.values() || []);
+              room.forEach(playerWs => {
+                playerWs.send(JSON.stringify({
+                  type: 'player-list',
+                  playerList
+                }));
+              });
             if(room.size === 0) {
               gameRooms.delete(gameId);
               roomTargets.delete(gameId);
@@ -178,6 +212,11 @@ app.get('/ws', upgradeWebSocket((c) => {
     }
   })
 );
+
+function getPlayerList(gameId: string) {
+  const playersInRoom = roomPlayers.get(gameId);
+  return Array.from(playersInRoom?.values() || []);
+}
 
 // export default app;
 export default {

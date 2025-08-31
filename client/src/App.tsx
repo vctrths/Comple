@@ -5,6 +5,7 @@ import WordGrid from './components/grid/WordGrid'
 import InputRow from './components/grid/InputRow'
 import GameLobby from './components/GameLobby'
 import GameStatus from './components/GameStatus'
+import LobbyStatus from './components/LobbyStatus'
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000"
 const WS_URL = import.meta.env.VITE_WS_URL || SERVER_URL.replace('http://', 'ws://').replace('https://', 'wss://') + '/ws';
@@ -25,7 +26,8 @@ function App() {
   const [isConnected, setIsConnected] = useState(false); 
   const [hasJoinedRoom, setHasJoinedRoom] = useState(false);
   const [playerCount, setPlayerCount] = useState<number>(0); 
-  
+  const [otherPlayerGuesses, setOtherPlayerGuesses] = useState<Record<string, Array<{ result: LetterStatus[] }>>>({});
+  const [playerList, setPlayerList] = useState<Array<{ playerId: string; guesses: Array<{ result: LetterStatus[] }> }>>([]);
   useEffect(() => {
     let websocket: WebSocket | null = null;
 
@@ -65,6 +67,21 @@ function App() {
                 break;
               case 'player-left':
                 setPlayerCount(data.playerCount || 0);
+                break;
+              case 'other-player-guess':
+                setOtherPlayerGuesses(prev => {
+                  const prevGuesses = prev[data.playerId] || [];
+                  return {
+                    ...prev,
+                    [data.playerId]: [...prevGuesses, { result: data.result }]
+                  };
+                });
+                break;
+              case 'player-list':
+                setPlayerList(data.playerList || []);
+                if ((data.playerList || []).some((p: any) => p.playerId === playerId)) {
+                  setHasJoinedRoom(true);
+                }
                 break;
             }
           } catch (error) {
@@ -181,6 +198,8 @@ function App() {
           <WordGrid guesses={guesses} />
           <InputRow letters={currentGuess} onLetterAdd={letterAdd} onLetterRemove={letterRemove} onSubmit={submitGuess} />
           <button onClick={leaveRoom}>Leave Room</button>
+          {console.log(otherPlayerGuesses)}
+          <LobbyStatus playerList={playerList} currentPlayerId={playerId}></LobbyStatus>
         </>
       )}
     </>
