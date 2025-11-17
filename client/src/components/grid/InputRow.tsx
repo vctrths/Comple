@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import Cell from "./cell";
+import Cell from "./Cell";
 
 interface InputRowProps {
     letters: string[];

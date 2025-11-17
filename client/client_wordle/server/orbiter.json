@@ -1,0 +1,7 @@
+{
+  "siteId": "b51c7214-4061-4649-9eb8-62c7d6f19c42",
+  "entryPath": "src/index.ts",
+  "buildCommand": "bun run build",
+  "buildDir": "dist",
+  "runtime": "cloudflare-workers"
+}

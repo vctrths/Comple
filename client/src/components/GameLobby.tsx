@@ -21,12 +21,12 @@ function GameLobby({
     }
   };
 
-  const handleJoinCurrentRoom = () => {
-    if (gameId) {
-      onJoinRoom(gameId);
-    }
-  };
-
+  // const handleJoinCurrentRoom = () => {
+  //   if (gameId) {
+  //     onJoinRoom(gameId);
+  //   }
+  // };
+  console.log(gameId);
   return (
     <div>
       <h1>Competitive Wordle</h1>

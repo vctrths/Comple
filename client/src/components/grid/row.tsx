@@ -1,4 +1,4 @@
-import Cell from './cell'
+import Cell from './Cell'
 type LetterStatus  = 'correct' | 'present' | 'absent' | undefined;
 
 interface RowProps {

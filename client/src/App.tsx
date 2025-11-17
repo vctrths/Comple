@@ -62,6 +62,7 @@ function App() {
                   setHasJoinedRoom(true);
                 }
                 setPlayerCount(data.playerCount || 1);
+                console.log(`Player joined, ${playerCount} in the lobby`);
                 break;
               case 'guess-result':
                 const newGuess: WordGuess = {
@@ -73,6 +74,7 @@ function App() {
                 break;
               case 'player-left':
                 setPlayerCount(data.playerCount || 0);
+                console.log(`Player left, ${playerCount} left in the lobby`);
                 break;
               case 'other-player-guess':
                 setOtherPlayerGuesses(prev => {

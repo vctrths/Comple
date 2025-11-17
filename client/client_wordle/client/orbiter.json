@@ -1,0 +1,6 @@
+{
+  "siteId": "b51c7214-4061-4649-9eb8-62c7d6f19c42",
+  "domain": "compwordle",
+  "buildCommand": "bun run build",
+  "buildDir": "dist"
+}

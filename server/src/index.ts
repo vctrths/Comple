@@ -5,16 +5,28 @@ import type { ServerWebSocket } from 'bun';
 
 import { VALID_WORDS_SET, TARGET_WORDS } from './words/words-5'
 import type{ GuessResponse, ApiResponse } from './types';
-import type { WebSocket } from 'bun';
-import { ScrollTrigger } from 'gsap/all';
-
+// import type { WebSocket } from 'bun'; // removed, not compatible with Hono's WSContext
 
 const validWords = VALID_WORDS_SET;
 let targetWord: string;
-const playerSockets = new Map<string, WebSocket>();
-const gameRooms = new Map<string, Set<WebSocket>>();
+
+// store the socket/context as `any` (or replace `any` with the exact WSContext type if you prefer)
+const playerSockets = new Map<string, any>();
+const gameRooms = new Map<string, Set<any>>();
+
+// per-room list of 3 words
 const roomTargets = new Map<string, string[]>();
-const roomPlayers = new Map<string, Map<string, { playerId: string; guesses: { result: string[] }[][]; currentWordIndex: number; }>>();
+
+// player shape: nested guesses per word, track index, optional timing/score/completed
+const roomPlayers = new Map<string, Map<string, {
+  playerId: string;
+  guesses: { result: string[] }[][];
+  currentWordIndex: number;
+  startTime?: number;
+  endTime?: number;
+  completed?: boolean;
+  score?: number;
+}>>();
 
 const app = new Hono()
 const { upgradeWebSocket, websocket} = createBunWebSocket<ServerWebSocket>();
