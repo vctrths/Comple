@@ -3,7 +3,7 @@ FROM oven/bun:latest AS builder
 WORKDIR /app
 
 # copy lock + package files so bun install can use cache
-COPY package.json bun.lockb ./
+COPY package.json bun.lock ./
 # copy workspaces package.json's (optional but helps cache)
 COPY server/package.json server/package.json
 COPY client/package.json client/package.json
