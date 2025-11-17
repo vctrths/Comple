@@ -5,7 +5,8 @@ import type { ServerWebSocket } from 'bun';
 
 import { VALID_WORDS_SET, TARGET_WORDS } from './words/words-5'
 import type{ GuessResponse, ApiResponse } from './types';
-// import type { WebSocket } from 'bun'; // removed, not compatible with Hono's WSContext
+
+const port = parseInt(process.env.PORT || '3000');
 
 const validWords = VALID_WORDS_SET;
 let targetWord: string;
@@ -258,7 +259,7 @@ function getPlayerList(gameId: string) {
 
 // export default app;
 export default {
-  port: 3000,
+  port: port,
   fetch: app.fetch,
   websocket
 }
