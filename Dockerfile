@@ -2,35 +2,30 @@
 FROM oven/bun:latest AS builder
 WORKDIR /app
 
-# copy lock + package files so bun install can use cache
-COPY package.json bun.lock ./
-# copy workspaces package.json's (optional but helps cache)
+# Copy root + workspace package.json files to leverage Docker layer cache
+COPY package.json ./
 COPY server/package.json server/package.json
 COPY client/package.json client/package.json
 COPY shared/package.json shared/package.json
 
-RUN bun install --frozen-lockfile
+# Install dependencies (do not require a lockfile to exist)
+RUN bun install
 
-# copy full repo and build everything (shared, server, client)
+# Copy the full repo and run the monorepo build script
 COPY . .
-# run monorepo build (uses scripts in root package.json)
 RUN bun run build
 
 # Runtime stage (smaller surface)
 FROM oven/bun:latest AS runtime
 WORKDIR /app
 
-# Copy only server runtime output and any static assets
-# adjust paths if your server output is elsewhere
+# Copy only the built server (and client static files if you want to serve them here)
 COPY --from=builder /app/server/dist ./server/dist
 COPY --from=builder /app/client/dist ./client/dist
-# copy bun.lockb and package.json if you need them (optional)
-COPY --from=builder /app/bun.lockb ./
-COPY --from=builder /app/package.json ./
 
-# Expose port your server listens on
+# Expose the port your server listens on
+ENV PORT 3000
 EXPOSE 3000
 
-# Run the built server file directly with bun
-# Ensure server/dist/index.js exists and is runnable
+# Run the built server file directly
 CMD ["bun", "server/dist/index.js"]
