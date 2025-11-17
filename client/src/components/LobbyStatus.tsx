@@ -1,10 +1,13 @@
 import PlayerStatus from './PlayerStatus';
 
-type LetterStatus  = 'correct' | 'present' | 'absent' | undefined;
+type LetterStatus = 'correct' | 'present' | 'absent' | undefined;
 
 interface Player {
-    playerId: string;
-    guesses: { result: LetterStatus[]; }[];
+  playerId: string;
+  guesses: Array<Array<{ result: LetterStatus[] }>>;
+  currentWordIndex?: number;
+  completed?: boolean;
+  score?: number;
 }
 
 interface LobbyStatusProps {
@@ -12,30 +15,20 @@ interface LobbyStatusProps {
   currentPlayerId: string;
 }
 
-function LobbyStatus({playerList, currentPlayerId} : LobbyStatusProps) {
-
-    // console.log(playerList);
-    return (
-        <div>
-            <h4>Players in room</h4>
-            <div style={{
-                display: 'flex',
-                flexDirection: 'row',
-                justifyContent: 'space-between'
-            }}>
-                {playerList.map(player => 
-                    player.playerId !== currentPlayerId ? (
-                        <div style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                        }}>
-                            <p style={{fontSize: '12px'}}><b>{player.playerId}</b></p>
-                            <PlayerStatus key={player.playerId} player={player}/>
-                        </div>
-                    ) : null
-                )}
+function LobbyStatus({ playerList, currentPlayerId }: LobbyStatusProps) {
+  return (
+    <div>
+      <h4>Players in room</h4>
+      <div style={{ display: 'flex', flexDirection: 'row', gap: 16 }}>
+        {playerList.map(player =>
+          player.playerId !== currentPlayerId ? (
+            <div key={player.playerId} style={{ display: 'flex', flexDirection: 'column' }}>
+              <PlayerStatus player={player} />
             </div>
-        </div>
-    )
+          ) : null
+        )}
+      </div>
+    </div>
+  );
 }
 export default LobbyStatus;

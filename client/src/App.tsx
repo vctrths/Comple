@@ -27,7 +27,13 @@ function App() {
   const [hasJoinedRoom, setHasJoinedRoom] = useState(false);
   const [playerCount, setPlayerCount] = useState<number>(0); 
   const [otherPlayerGuesses, setOtherPlayerGuesses] = useState<Record<string, Array<{ result: LetterStatus[] }>>>({});
-  const [playerList, setPlayerList] = useState<Array<{ playerId: string; guesses: Array<{ result: LetterStatus[] }> }>>([]);
+  const [playerList, setPlayerList] = useState<Array<{
+    playerId: string;
+    guesses: Array<Array<{ result: LetterStatus[] }>>;
+    currentWordIndex?: number;
+    completed?: boolean;
+    score?: number;
+  }>>([]);
   useEffect(() => {
     let websocket: WebSocket | null = null;
 

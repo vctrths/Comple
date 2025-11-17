@@ -6,14 +6,15 @@ import type { ServerWebSocket } from 'bun';
 import { VALID_WORDS_SET, TARGET_WORDS } from './words/words-5'
 import type{ GuessResponse, ApiResponse } from './types';
 import type { WebSocket } from 'bun';
+import { ScrollTrigger } from 'gsap/all';
 
 
 const validWords = VALID_WORDS_SET;
 let targetWord: string;
 const playerSockets = new Map<string, WebSocket>();
 const gameRooms = new Map<string, Set<WebSocket>>();
-const roomTargets = new Map<string, string>();
-const roomPlayers = new Map<string, Map<string, { playerId: string; guesses: { result: string[] }[] }>>();
+const roomTargets = new Map<string, string[]>();
+const roomPlayers = new Map<string, Map<string, { playerId: string; guesses: { result: string[] }[][]; currentWordIndex: number; }>>();
 
 const app = new Hono()
 const { upgradeWebSocket, websocket} = createBunWebSocket<ServerWebSocket>();
@@ -70,6 +71,7 @@ app.get('/ws', upgradeWebSocket((c) => {
       onMessage(event, ws) {
         const data = JSON.parse(event.data as string);
         console.log(`Message from client: ${event.data}`);
+
         switch (data.type) {
           case 'join-game':
             const { gameId, playerId } = data;
@@ -79,7 +81,13 @@ app.get('/ws', upgradeWebSocket((c) => {
 
             if(!gameRooms.has(gameId)) {
               gameRooms.set(gameId, new Set<WebSocket>());
-              roomTargets.set(gameId, TARGET_WORDS[Math.floor(Math.random() * TARGET_WORDS.length)] || 'house');
+              const words: string[] = [
+                TARGET_WORDS[Math.floor(Math.random() * TARGET_WORDS.length)]!,
+                TARGET_WORDS[Math.floor(Math.random() * TARGET_WORDS.length)]!,
+                TARGET_WORDS[Math.floor(Math.random() * TARGET_WORDS.length)]!,
+              ];
+              roomTargets.set(gameId, words);
+              console.log(roomTargets);
             }
             gameRooms.get(gameId)?.add(ws);
 
@@ -88,7 +96,7 @@ app.get('/ws', upgradeWebSocket((c) => {
             }
 
             if (!roomPlayers.get(gameId)?.has(playerId)) {
-              roomPlayers.get(gameId)?.set(playerId, { playerId, guesses: [] });
+              roomPlayers.get(gameId)?.set(playerId, { playerId, guesses: [], currentWordIndex: 0});
             }
 
             const joinPlayerList = Array.from(roomPlayers.get(gameId)?.values() || []);
@@ -105,12 +113,30 @@ app.get('/ws', upgradeWebSocket((c) => {
             console.log(`${guessingPlayer} guessed: ${guess}`);
 
             if (validWords.has(guess)) {
-              const target = roomTargets.get(currentGameId);
+              const targets = roomTargets.get(currentGameId) || [];
+              const playersMap = roomPlayers.get(currentGameId);
+              const playerData = playersMap?.get(guessingPlayer);
+              const currentWordIndex = playerData?.currentWordIndex ?? 0;
+              const target = targets[currentWordIndex] ?? targets[0] ?? '';
               const result = evaluateGuess(guess, target);
-
-              const playerData = roomPlayers.get(currentGameId)?.get(guessingPlayer);
+              const isCorrect = guess === target;
               if (playerData) {
-                playerData.guesses.push({ result });
+                if (!playerData.guesses[currentWordIndex]) {
+                  playerData.guesses[currentWordIndex] = [];
+                }
+                playerData.guesses[currentWordIndex].push({ result });
+                if(isCorrect) {
+                  if(currentWordIndex < 3){
+                    playerData.currentWordIndex += 1;
+                  }
+                  else {
+                    ws.send(JSON.stringify({
+                      type:'player-finished',
+                      playerId: guessingPlayer,
+                      score: playerData.score
+                    }));
+                  }
+                }
               }
 
               ws.send(JSON.stringify({
@@ -118,7 +144,7 @@ app.get('/ws', upgradeWebSocket((c) => {
                 playerId: guessingPlayer,
                 word: guess,
                 result: result,
-                isCorrect: guess === target
+                isCorrect: isCorrect
               }));
 
               const gameRoom = gameRooms.get(currentGameId);
