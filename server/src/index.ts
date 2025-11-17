@@ -5,6 +5,7 @@ import type { ServerWebSocket } from 'bun';
 
 import { VALID_WORDS_SET, TARGET_WORDS } from './words/words-5'
 import type{ GuessResponse, ApiResponse } from './types';
+import { serveStatic } from 'hono/bun' // Bun's built-in static middleware
 
 const port = parseInt(process.env.PORT || '3000');
 
@@ -72,6 +73,10 @@ function evaluateGuess(guess: string, target: string): string[] {
   return result;
 };
 
+app.use('/static/*', serveStatic({ root: './' }))
+app.use('/*', serveStatic({ root: './client/dist', rewriteRequestPath: (path) => path === '/' ? '/index.html' : path }))
+
+// WebSocket and API routes (these should come BEFORE the catch-all static route)
 app.get('/ws', upgradeWebSocket((c) => {
     return {
       onOpen(event, ws) {
@@ -251,6 +256,9 @@ app.get('/ws', upgradeWebSocket((c) => {
     }
   })
 );
+
+// Catch-all: serve index.html for client-side routing (SPA fallback)
+app.get('*', serveStatic({ path: './client/dist/index.html' }))
 
 function getPlayerList(gameId: string) {
   const playersInRoom = roomPlayers.get(gameId);

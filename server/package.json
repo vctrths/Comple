@@ -8,6 +8,7 @@
     "dev": "bun --watch run src/index.ts"
   },
   "dependencies": {
+    "@hono/node-server": "^1.19.6",
     "hono": "^4.7.7",
     "shared": "workspace:*"
   },
