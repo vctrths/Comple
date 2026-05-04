@@ -18,13 +18,13 @@ gameRoutes.get(
   upgradeWebSocket((c) => {
     return {
       onOpen(event, ws) {
-        handleOpen(ws);
+        handleOpen({ ws });
       },
       onMessage(event, ws) {
-        handleMessage(ws, event);
+        handleMessage({ ws, event });
       },
       onClose: (event, ws) => {
-        handleClose(ws, event);
+        handleClose({ ws, event });
       },
     };
   }),
