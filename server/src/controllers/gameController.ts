@@ -9,12 +9,51 @@ import {
 
 import { VALID_WORDS_SET, TARGET_WORDS } from "../words/words-5";
 import type { WSContext, WSMessageReceive } from "hono/ws";
+import type { handleType, wsType } from "@server/types";
 const validWords = VALID_WORDS_SET;
 
-export function handleMessage(
-  ws: WSContext<ServerWebSocket<undefined>>,
-  data: any,
-) {
+export function handleOpen({ ws }: handleType) {
+  console.log("WebSocket connection opened");
+  ws.send(
+    JSON.stringify({
+      type: "connected",
+      message: "Connected to game server",
+    }),
+  );
+}
+
+export function handleClose({ ws, closeEvent }: handleType) {
+  gameRooms.forEach((room, gameId) => {
+    if (room.has(ws)) {
+      room.delete(ws);
+      console.log(`Player left game ${gameId}`);
+      for (const [playerId, playerWs] of playerSockets.entries()) {
+        if (playerWs === ws) {
+          roomPlayers.get(gameId)?.delete(playerId);
+          playerSockets.delete(playerId);
+          break;
+        }
+      }
+      const playerList = Array.from(roomPlayers.get(gameId)?.values() || []);
+      room.forEach((playerWs) => {
+        playerWs.send(
+          JSON.stringify({
+            type: "player-list",
+            playerList,
+          }),
+        );
+      });
+      if (room.size === 0) {
+        gameRooms.delete(gameId);
+        roomTargets.delete(gameId);
+        console.log(`Empty game room ${gameId} deleted`);
+      }
+    }
+  });
+}
+
+export function handleMessage({ ws, event }: handleType) {
+  const data = JSON.parse(event.data as string);
   switch (data.type) {
     case "join-game":
       const { gameId, playerId } = data;
@@ -171,37 +210,4 @@ export function handleMessage(
       }
       break;
   }
-}
-
-export function handleClose(
-  ws: WSContext<ServerWebSocket<undefined>>,
-  event: CloseEvent,
-) {
-  gameRooms.forEach((room, gameId) => {
-    if (room.has(ws)) {
-      room.delete(ws);
-      console.log(`Player left game ${gameId}`);
-      for (const [playerId, playerWs] of playerSockets.entries()) {
-        if (playerWs === ws) {
-          roomPlayers.get(gameId)?.delete(playerId);
-          playerSockets.delete(playerId);
-          break;
-        }
-      }
-      const playerList = Array.from(roomPlayers.get(gameId)?.values() || []);
-      room.forEach((playerWs) => {
-        playerWs.send(
-          JSON.stringify({
-            type: "player-list",
-            playerList,
-          }),
-        );
-      });
-      if (room.size === 0) {
-        gameRooms.delete(gameId);
-        roomTargets.delete(gameId);
-        console.log(`Empty game room ${gameId} deleted`);
-      }
-    }
-  });
 }
