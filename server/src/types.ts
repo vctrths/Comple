@@ -17,3 +17,9 @@ export interface handleType {
   event?: any;
   closeEvent?: CloseEvent;
 }
+
+export type GameMessage = {
+  gameId: string;
+  playerId: string;
+  guess?: string;
+};
