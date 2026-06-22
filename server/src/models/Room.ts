@@ -1,5 +1,6 @@
 import { TARGET_WORDS } from "@server/words/words-5";
 import type { Player } from "./Player";
+import { evaluateGuess } from "@server/services/evaluateGuess";
 
 interface GetPlayerProps {
   socket?: WebSocket;
@@ -13,7 +14,13 @@ export class Room {
   public readonly maxPlayers: number;
   private targetWords: string[] = [];
 
-  handleGuess() {}
+  handleGuess(player: Player, guess: string) {
+    const target = this.targetWords[player.currentWordIndex];
+    if (!target) return undefined;
+    const result = evaluateGuess(guess, target);
+    player.addEvaluatedGuess(result);
+    return result;
+  }
 
   constructor(id: string, maxPlayers: number) {
     this.id = id;
@@ -40,8 +47,17 @@ export class Room {
     return undefined;
   }
 
-  broadcast(message: unknown) {
+  getPlayersList() {
+    return Array.from(this.players.values()).map(
+      (player) => player.getPublicData,
+    );
+  }
+
+  broadcast(message: unknown, except: Player[] = []) {
+    const exceptIds = new Set(except.map((player) => player.id));
+
     for (const player of this.players.values()) {
+      if (exceptIds.has(player.id)) continue;
       player.send(message);
     }
   }

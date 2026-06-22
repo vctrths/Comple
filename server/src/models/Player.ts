@@ -1,9 +1,10 @@
 export class Player {
   public username: string;
   public readonly id: string;
-  private guesses: string[] = [];
+  private guesses: string[][] = [];
   public currentWordIndex: number = 0;
   public readonly socket: WebSocket;
+  public score: number = 0;
 
   constructor(username: string, id: string, socket: WebSocket) {
     this.username = username;
@@ -13,6 +14,21 @@ export class Player {
 
   getSocket() {
     return this.socket;
+  }
+
+  addEvaluatedGuess(result: string[]) {
+    if (result.every((eva) => eva === "correct")) {
+      this.currentWordIndex += 1;
+
+      if (this.currentWordIndex >= 3) {
+        this.send({
+          type: "player-finished",
+          playerId: this.id,
+          score: this.score,
+        });
+      }
+    }
+    this.guesses.push(result);
   }
 
   send(message: unknown) {

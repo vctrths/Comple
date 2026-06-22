@@ -4,7 +4,6 @@ import {
   gameRooms,
   roomTargets,
   roomPlayers,
-  evaluateGuess,
 } from "../services/gameState";
 
 import { VALID_WORDS_SET, TARGET_WORDS } from "../words/words-5";
@@ -12,6 +11,7 @@ import type { WSContext, WSMessageReceive } from "hono/ws";
 import type { GameMessage, handleType, wsType } from "@server/types";
 import { Room } from "@server/models/Room";
 import { Player } from "@server/models/Player";
+import { BulkWriteResult } from "mongodb";
 const validWords = VALID_WORDS_SET;
 
 const rooms = new Map<string, Room>();
@@ -53,75 +53,50 @@ function handleSubmit(data: GameMessage, ws: WebSocket) {
   const { guess, playerId: guessingPlayer, gameId: currentGameId } = data;
   console.log(`${guessingPlayer} guessed: ${guess}`);
 
-  if (validWords.has(guess)) {
-    const targets = roomTargets.get(currentGameId) || [];
-    const playersMap = roomPlayers.get(currentGameId);
-    const playerData = playersMap?.get(guessingPlayer);
-    const currentWordIndex = playerData?.currentWordIndex ?? 0;
-    const target = targets[currentWordIndex] ?? targets[0] ?? "";
-    const result = evaluateGuess(guess, target);
-    const isCorrect = guess === target;
-    if (playerData) {
-      if (!playerData.guesses[currentWordIndex]) {
-        playerData.guesses[currentWordIndex] = [];
-      }
-      playerData.guesses[currentWordIndex].push({ result });
-      if (isCorrect) {
-        if (currentWordIndex < 3) {
-          playerData.currentWordIndex += 1;
-        } else {
-          ws.send(
-            JSON.stringify({
-              type: "player-finished",
-              playerId: guessingPlayer,
-              score: playerData.score,
-            }),
-          );
-        }
-      }
-    }
+  const room = rooms.get(currentGameId);
+  if (!room || !guess || !guessingPlayer) return undefined;
 
-    ws.send(
+  const player = room.getPlayer({ id: guessingPlayer });
+  if (!player) {
+    return ws.send(
       JSON.stringify({
-        type: "guess-result",
-        playerId: guessingPlayer,
-        word: guess,
-        result: result,
-        isCorrect: isCorrect,
-      }),
-    );
-
-    const gameRoom = gameRooms.get(currentGameId);
-    gameRoom?.forEach((playerWs) => {
-      if (playerWs !== ws) {
-        playerWs.send(
-          JSON.stringify({
-            type: "other-player-guess",
-            playerId: guessingPlayer,
-            result: result,
-          }),
-        );
-      }
-    });
-  } else {
-    ws.send(
-      JSON.stringify({
-        type: "guess-error",
-        message: "Not a valid word",
+        type: "fetch-error",
+        message: "couldn't fetch guessing player",
       }),
     );
   }
 
-  const guessPlayerList = Array.from(
-    roomPlayers.get(currentGameId)?.values() || [],
+  if (!validWords.has(guess)) {
+    return player.send({
+      type: "guess-error",
+      message: "Not a valid word",
+    });
+  }
+
+  const result = room.handleGuess(player, guess);
+  if (!result) {
+    return player.send({
+      type: "guess-error",
+      message: "No active target word",
+    });
+  }
+
+  player.send({
+    type: "guess-result",
+    word: guess,
+    result: result,
+  });
+  room.broadcast(
+    {
+      type: "other-player-guess",
+      playerId: player.id,
+      result: result,
+    },
+    [player],
   );
-  gameRooms.get(currentGameId)?.forEach((playerWs) => {
-    playerWs.send(
-      JSON.stringify({
-        type: "player-list",
-        playerList: guessPlayerList,
-      }),
-    );
+  room.broadcast({
+    type: "player-list",
+    playerList: room.getPlayersList(),
   });
 }
 
