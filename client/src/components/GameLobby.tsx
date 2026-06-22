@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState } from "react";
+import Button from "./Button";
+import styles from "./GameLobby.module.css";
 
 interface GameLobbyProps {
   isConnected: boolean;
@@ -8,12 +10,8 @@ interface GameLobbyProps {
   onJoinRoom: (roomId: string) => void;
 }
 
-function GameLobby({ 
-  isConnected, 
-  gameId, 
-  onJoinRoom
-}: GameLobbyProps) {
-  const [customRoomId, setCustomRoomId] = useState('');
+function GameLobby({ isConnected, gameId, onJoinRoom }: GameLobbyProps) {
+  const [customRoomId, setCustomRoomId] = useState("");
 
   const handleJoinCustomRoom = () => {
     if (customRoomId.trim()) {
@@ -29,20 +27,34 @@ function GameLobby({
   console.log(gameId);
   return (
     <div>
-      <h1>Competitive Wordle</h1>
+      <h1>Comple</h1>
       {isConnected ? (
-        <div>
-          {/* Join Custom Room */}
+        <div className={styles["card"]}>
+          <div className={styles["matchmaking"]}>
+            <Button label="Random room" />
+            <Button label="Room list" appearance="outline" />
+          </div>
           <div>
-            <h4 style={{textAlign: 'start'}}>Join a room!</h4>
-            <div style={{display: 'flex', justifyContent: 'space-between'}}>
-              <input type="text" placeholder="Enter Room ID" value={customRoomId} onChange={(e) => setCustomRoomId(e.target.value)} style={{width: '70%', padding: '.8rem', border: '1px black',borderRadius: '8px'}}/>
-              <button onClick={handleJoinCustomRoom} disabled={!customRoomId.trim()}>Join</button>
+            <h4 style={{ textAlign: "start" }}>Custom room</h4>
+            <div className={styles["custom"]}>
+              <input
+                type="text"
+                placeholder="Enter Room ID"
+                value={customRoomId}
+                onChange={(e) => setCustomRoomId(e.target.value)}
+                className={styles["roomid"]}
+              />
+              <Button
+                label="Join"
+                appearance="plain"
+                onClick={handleJoinCustomRoom}
+                disabled={!customRoomId.trim()}
+              />
             </div>
           </div>
         </div>
       ) : (
-        <div style={{ textAlign: 'center', padding: '20px' }}>
+        <div style={{ textAlign: "center", padding: "20px" }}>
           <p>Connecting to server...</p>
         </div>
       )}

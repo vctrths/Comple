@@ -10,7 +10,11 @@ import {
 import { VALID_WORDS_SET, TARGET_WORDS } from "../words/words-5";
 import type { WSContext, WSMessageReceive } from "hono/ws";
 import type { GameMessage, handleType, wsType } from "@server/types";
+import { Room } from "@server/models/Room";
+import { Player } from "@server/models/Player";
 const validWords = VALID_WORDS_SET;
+
+const rooms = new Map<string, Room>();
 
 export function handleOpen({ ws }: handleType) {
   console.log("WebSocket connection opened");
@@ -23,72 +27,26 @@ export function handleOpen({ ws }: handleType) {
 }
 
 export function handleClose({ ws, closeEvent }: handleType) {
-  gameRooms.forEach((room, gameId) => {
-    if (room.has(ws)) {
-      room.delete(ws);
-      console.log(`Player left game ${gameId}`);
-      for (const [playerId, playerWs] of playerSockets.entries()) {
-        if (playerWs === ws) {
-          roomPlayers.get(gameId)?.delete(playerId);
-          playerSockets.delete(playerId);
-          break;
-        }
-      }
-      const playerList = Array.from(roomPlayers.get(gameId)?.values() || []);
-      room.forEach((playerWs) => {
-        playerWs.send(
-          JSON.stringify({
-            type: "player-list",
-            playerList,
-          }),
-        );
-      });
-      if (room.size === 0) {
-        gameRooms.delete(gameId);
-        roomTargets.delete(gameId);
-        console.log(`Empty game room ${gameId} deleted`);
-      }
-    }
+  rooms.forEach((room) => {
+    const player = room.getPlayer({ socket: ws });
+    if (!player) return undefined;
+    room.removePlayer(player);
+    console.log(` ${player?.id} left room ${room.id}`);
+    if (room.players.size === 0) rooms.delete(room.id);
   });
 }
 
 function handleJoin(data: GameMessage, ws: WebSocket) {
-  const { gameId, playerId } = data;
-  console.log(`${playerId} joining game ${gameId}`);
-
-  playerSockets.set(playerId, ws);
-
-  if (!gameRooms.has(gameId)) {
-    gameRooms.set(gameId, new Set<WebSocket>());
-    const words: string[] = [
-      TARGET_WORDS[Math.floor(Math.random() * TARGET_WORDS.length)]!,
-      TARGET_WORDS[Math.floor(Math.random() * TARGET_WORDS.length)]!,
-      TARGET_WORDS[Math.floor(Math.random() * TARGET_WORDS.length)]!,
-    ];
-    roomTargets.set(gameId, words);
-    console.log(roomTargets);
+  const { gameId, playerId, username } = data;
+  const player = new Player(username ?? "Player", playerId, ws);
+  console.log(`${player.id} joining game ${gameId}`);
+  let room = rooms.get(gameId);
+  if (!room) {
+    room = new Room(gameId, 2);
+    rooms.set(room.id, room);
   }
-  gameRooms.get(gameId)?.add(ws);
-
-  if (!roomPlayers.has(gameId)) {
-    roomPlayers.set(gameId, new Map());
-  }
-
-  if (!roomPlayers.get(gameId)?.has(playerId)) {
-    roomPlayers
-      .get(gameId)
-      ?.set(playerId, { playerId, guesses: [], currentWordIndex: 0 });
-  }
-
-  const joinPlayerList = Array.from(roomPlayers.get(gameId)?.values() || []);
-  gameRooms.get(gameId)?.forEach((playerWs) => {
-    playerWs.send(
-      JSON.stringify({
-        type: "player-list",
-        playerList: joinPlayerList,
-      }),
-    );
-  });
+  room.addPlayer(player);
+  console.log(`${player.id} succesfully joined room: ${room.id}`);
 }
 
 function handleSubmit(data: GameMessage, ws: WebSocket) {

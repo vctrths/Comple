@@ -7,6 +7,7 @@ import {
   handleMessage,
   handleOpen,
 } from "@server/controllers/gameController";
+import { Room } from "@server/models/Room";
 
 export const { upgradeWebSocket, websocket } =
   createBunWebSocket<ServerWebSocket>();
@@ -29,3 +30,14 @@ gameRoutes.get(
     };
   }),
 );
+
+gameRoutes.get("/testing", (c) => {
+  const room = new Room("test", 2);
+  room.startGame();
+
+  return c.json({
+    id: room.id,
+    maxPlayers: room.maxPlayers,
+    players: room.players.size,
+  });
+});

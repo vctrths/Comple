@@ -1,0 +1,23 @@
+.roomid {
+    padding: .8rem;
+    border: 1px solid #F9F9F9;
+    border: none;
+    border-radius: 8px;
+}
+
+.custom {
+    display: flex;
+    gap: 16px;
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+}
+
+.matchmaking {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}

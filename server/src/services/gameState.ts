@@ -23,17 +23,14 @@ export function evaluateGuess(guess: string, target: string): string[] {
   const guessLetters = guess.split("");
   const targetCounts = new Map<string, number>();
 
-  // First pass: mark correct positions and count remaining letters
   targetLetters.forEach((letter: string, index: number) => {
     if (letter === guessLetters[index]) {
       result[index] = "correct";
     } else {
-      // Count this letter as available for 'present' matches
       targetCounts.set(letter, (targetCounts.get(letter) || 0) + 1);
     }
   });
 
-  // Second pass: mark present/absent for non-correct positions
   guessLetters.forEach((letter: string, index: number) => {
     if (result[index] !== "correct") {
       const availableCount = targetCounts.get(letter) || 0;

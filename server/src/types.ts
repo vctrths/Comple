@@ -13,7 +13,7 @@ export type ApiResponse = {
 export type wsType = WSContext<ServerWebSocket<undefined>>;
 
 export interface handleType {
-  ws: wsType;
+  ws: WebSocket;
   event?: any;
   closeEvent?: CloseEvent;
 }
@@ -22,4 +22,5 @@ export type GameMessage = {
   gameId: string;
   playerId: string;
   guess?: string;
+  username?: string;
 };

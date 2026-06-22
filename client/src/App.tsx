@@ -152,6 +152,7 @@ function App() {
           type: "join-game",
           gameId: roomId,
           playerId,
+          username: "username",
         }),
       );
       console.log(`Joining room: ${roomId}`);
