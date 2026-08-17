@@ -1,20 +1,11 @@
-import type { ServerWebSocket, WebSocket } from "bun";
-import {
-  playerSockets,
-  gameRooms,
-  roomTargets,
-  roomPlayers,
-} from "../services/gameState";
+import type { WebSocket } from "bun";
 
 import { VALID_WORDS_SET, TARGET_WORDS } from "../words/words-5";
-import type { WSContext, WSMessageReceive } from "hono/ws";
 import type { GameMessage, handleType, wsType } from "@server/types";
 import { Room } from "@server/models/Room";
 import { Player } from "@server/models/Player";
-import { BulkWriteResult } from "mongodb";
+import { rooms } from "@server/services/RoomManager";
 const validWords = VALID_WORDS_SET;
-
-const rooms = new Map<string, Room>();
 
 export function handleOpen({ ws }: handleType) {
   console.log("WebSocket connection opened");
@@ -101,36 +92,16 @@ function handleSubmit(data: GameMessage, ws: WebSocket) {
 }
 
 function handleLeave(data: GameMessage, ws: WebSocket) {
-  console.log("Server received leave-room message:", data);
-  const { gameId: leaveGameId, playerId: leavingPlayerId } = data;
-  const leaveRoom = gameRooms.get(leaveGameId);
-  const playerWs = playerSockets.get(leavingPlayerId);
+  const { playerId: leavingPlayerId, gameId: currentGameId } = data;
+  const leaveRoom = rooms.get(currentGameId);
+  if (!leaveRoom) return undefined;
+  const playerWs = leaveRoom.getPlayer({ id: leavingPlayerId });
+  if (!playerWs) return undefined;
 
-  if (leaveRoom && playerWs && leaveRoom.has(playerWs)) {
-    console.log(`Removing player ${leavingPlayerId} from room ${leaveGameId}`);
-    leaveRoom.delete(playerWs);
-    playerSockets.delete(leavingPlayerId);
-    roomPlayers.get(leaveGameId)?.delete(leavingPlayerId);
-
-    const playerList = Array.from(roomPlayers.get(leaveGameId)?.values() || []);
-    leaveRoom.forEach((remainingPlayerWs) => {
-      remainingPlayerWs.send(
-        JSON.stringify({
-          type: "player-list",
-          playerList,
-        }),
-      );
-    });
-    if (leaveRoom.size === 0) {
-      gameRooms.delete(leaveGameId);
-      roomTargets.delete(leaveGameId);
-    }
-  } else {
-    console.log("Failed checks:", {
-      roomExists: !!leaveRoom,
-      playerSocketFound: !!playerWs,
-      wsInRoom: leaveRoom?.has(playerWs),
-    });
+  leaveRoom.broadcast(`Removing player ${leavingPlayerId} from room ${leaveRoom.id}`);
+  const users = leaveRoom.removePlayer(playerWs);
+  if (!users) {
+    rooms.delete(leaveRoom.id);
   }
 }
 

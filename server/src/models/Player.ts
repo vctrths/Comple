@@ -6,6 +6,10 @@ export class Player {
   public readonly socket: WebSocket;
   public score: number = 0;
 
+  public startTime?: number;
+  private endTime?: number;
+  private completed?: boolean;
+
   constructor(username: string, id: string, socket: WebSocket) {
     this.username = username;
     this.id = id;
@@ -40,5 +44,10 @@ export class Player {
       id: this.id,
       username: this.username,
     };
+  }
+
+  startGame() {
+    this.startTime = Date.now();
+    this.completed = false;
   }
 }

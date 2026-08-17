@@ -33,6 +33,7 @@ export class Room {
 
   removePlayer(player: Player) {
     this.players.delete(player.id);
+    return this.players.size != 0;
   }
 
   getPlayer({ socket, id }: GetPlayerProps) {
@@ -64,7 +65,9 @@ export class Room {
 
   startGame() {
     this.generateWords();
-    console.log(this.targetWords);
+    for (const player of this.players.values()) {
+      player.startGame();
+    }
   }
 
   private generateWords() {
