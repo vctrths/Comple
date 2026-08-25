@@ -50,7 +50,7 @@ export class Room {
 
   getPlayersList() {
     return Array.from(this.players.values()).map(
-      (player) => player.getPublicData,
+      (player) => player.getPublicData(),
     );
   }
 

@@ -46,6 +46,13 @@ export class Player {
     };
   }
 
+  toRosterEntry() {
+    return {
+      id: this.id,
+      completed: this.completed,
+    }
+  }
+
   startGame() {
     this.startTime = Date.now();
     this.completed = false;
